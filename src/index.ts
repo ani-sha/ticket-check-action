@@ -34,7 +34,7 @@ async function run(): Promise<void> {
     });
     const ticketLink = getInput('ticketLink', { required: false });
     const titleRegex = new RegExp(titleRegexBase, titleRegexFlags);
-    const titleCheck = titleRegex.exec(title);
+    const  titleCheck = titleRegex.exec(title);
 
     // Instantiate a GitHub Client instance
     const token = getInput('token', { required: true });
@@ -51,47 +51,71 @@ async function run(): Promise<void> {
       if (!ticketLink) {
         return;
       }
+        matchArray.forEach( element => {
+          const ticketNumber = element;
 
-      const ticketNumber = matchArray.groups?.ticketNumber;
+          if(!ticketNumber) {
+            debug('ticketNumber not found', 'ticketNumber group not found in match array.');
 
-      if (!ticketNumber) {
-        debug('ticketNumber not found', 'ticketNumber group not found in match array.');
+            return;
+          }
 
-        return;
-      }
+          if (!ticketLink.includes('%ticketNumber%')) {
+            debug('invalid ticketLink', 'ticketLink must include "%ticketNumber%" variable to post ticket link.');
+    
+            return;
+          }
 
-      if (!ticketLink.includes('%ticketNumber%')) {
-        debug('invalid ticketLink', 'ticketLink must include "%ticketNumber%" variable to post ticket link.');
+          const linkToTicket = ticketLink.replace('%ticketNumber%', ticketNumber);
 
-        return;
-      }
-
-      const linkToTicket = ticketLink.replace('%ticketNumber%', ticketNumber);
-
-      const currentReviews = await client.pulls.listReviews({
-        owner,
-        repo,
-        pull_number: number
+          client.pulls.createReview({
+            owner,
+            repo,
+            pull_number: number,
+            body: `See the ticket for this pull request: ${linkToTicket}`,
+            event: 'COMMENT'
+          });
       });
+      // const ticketNumber = matchArray.groups?.ticketNumber;
 
-      debug('current reviews', JSON.stringify(currentReviews));
+      // if (!ticketNumber) {
+      //   debug('ticketNumber not found', 'ticketNumber group not found in match array.');
 
-      if (
-        currentReviews?.data?.length &&
-        currentReviews?.data.some((review: { body?: string }) => review?.body?.includes(linkToTicket))
-      ) {
-        debug('already posted ticketLink', 'found an existing review that contains the ticket link');
+      //   return;
+      // }
 
-        return;
-      }
+      // if (!ticketLink.includes('%ticketNumber%')) {
+      //   debug('invalid ticketLink', 'ticketLink must include "%ticketNumber%" variable to post ticket link.');
 
-      client.pulls.createReview({
-        owner,
-        repo,
-        pull_number: number,
-        body: `See the ticket for this pull request: ${linkToTicket}`,
-        event: 'COMMENT'
-      });
+      //   return;
+      // }
+
+      // const linkToTicket = ticketLink.replace('%ticketNumber%', ticketNumber);
+
+      // const currentReviews = await client.pulls.listReviews({
+      //   owner,
+      //   repo,
+      //   pull_number: number
+      // });
+
+      // debug('current reviews', JSON.stringify(currentReviews));
+
+      // if (
+      //   currentReviews?.data?.length &&
+      //   currentReviews?.data.some((review: { body?: string }) => review?.body?.includes(linkToTicket))
+      // ) {
+      //   debug('already posted ticketLink', 'found an existing review that contains the ticket link');
+
+      //   return;
+      // }
+
+      // client.pulls.createReview({
+      //   owner,
+      //   repo,
+      //   pull_number: number,
+      //   body: `See the ticket for this pull request: ${linkToTicket}`,
+      //   event: 'COMMENT'
+      // });
     };
 
     debug('title', title);
